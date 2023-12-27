@@ -8,6 +8,7 @@ import java.util.NavigableMap
 data class Kontak(
     val id: Int,
     val nama: String,
+    @SerialName(value = "email")
     val alamat: String,
     @SerialName(value = "telepon")
     val nohp: String,
