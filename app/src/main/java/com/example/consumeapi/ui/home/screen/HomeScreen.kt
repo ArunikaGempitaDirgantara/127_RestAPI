@@ -8,9 +8,6 @@ import androidx.compose.material3.Button
 import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.res.painterResource
 import com.example.consumeapi.ui.home.viewmodel.KontakUIState
-
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +25,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -45,24 +43,27 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.consumeapi.R
 import com.example.consumeapi.model.Kontak
+import com.example.consumeapi.navigation.DestinasiNavigasi
 import com.example.consumeapi.ui.home.viewmodel.HomeViewModel
 import com.example.consumeapi.ui.PenyediaViewModel
-import com.example.roomsiswa_122.navigasi.DestinasiNavigasi
-import com.example.roomsiswa_122.navigasi.SiswaTopAppBar
-
-object DestinasiHome: DestinasiNavigasi {
-    override val route = "home"
-    override val titleRes =  R.string.app_name
-}
+import com.example.consumeapi.ui.TopAppBarKontak
 
 @Composable
-fun HomeScreen(
-    kontakUIState: KontakUIState, retryAction: () -> Unit, modifier: Modifier = Modifier
+fun HomeStatus(
+    kontakUIState: KontakUIState, retryAction: () -> Unit, modifier: Modifier = Modifier,
+    onDeleteClick: (Kontak) -> Unit = {},
+    onDetailClick: (Int) -> Unit
 ) {
     when (kontakUIState) {
         is KontakUIState.Loading -> OnLoading(modifier = modifier.fillMaxSize())
         is KontakUIState.Success -> KontakLayout(
-            kontak = kontakUIState.kontak, modifier = modifier.fillMaxWidth()
+            kontak = kontakUIState.kontak, modifier = modifier.fillMaxWidth(),
+            onDetailClick = {
+                onDetailClick(it.id)
+            },
+            onDeleteClick = {
+                onDeleteClick(it)
+            }
         )
 
         is KontakUIState.Error -> OnError(retryAction, modifier = modifier.fillMaxSize())
@@ -98,7 +99,10 @@ fun OnError(retryAction: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun KontakLayout(kontak: List<Kontak>, modifier: Modifier = Modifier) {
+fun KontakLayout(kontak: List<Kontak>, modifier: Modifier = Modifier,
+                 onDetailClick: (Kontak) -> Unit,
+                 onDeleteClick: (Kontak) -> Unit = {}
+) {
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(16.dp),
@@ -107,7 +111,11 @@ fun KontakLayout(kontak: List<Kontak>, modifier: Modifier = Modifier) {
         items(kontak) {kontak ->
             KontakCard(kontak = kontak, modifier = Modifier
                 .fillMaxWidth()
-                .clickable { })
+                .clickable { onDetailClick(kontak) },
+                onDeleteClick = {
+                    onDeleteClick(kontak)
+                }
+                )
         }
     }
 }
@@ -115,6 +123,7 @@ fun KontakLayout(kontak: List<Kontak>, modifier: Modifier = Modifier) {
 @Composable
 fun KontakCard(
     kontak: Kontak,
+    onDeleteClick: (Kontak) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Card (
@@ -128,101 +137,60 @@ fun KontakCard(
         ){
             Row (
                 modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ){
                 Text(text = kontak.nama,
                     style = MaterialTheme.typography.titleLarge,)
                 Spacer(Modifier.weight(1f))
-                Icon(imageVector = I, contentDescription = )
+                IconButton(onClick = {onDeleteClick(kontak)}) {
+                }
+                Icon(imageVector = Icons.Default.Phone, contentDescription =null,)
+                Text(text = kontak.nohp,
+                    style = MaterialTheme.typography.titleMedium)
             }
         }
     }
 }
 
-@Composable
-fun BodyHome(
-    itemSiswa: List<Siswa>,
-    modifier: Modifier=Modifier,
-    onSiswaClick: (Int) -> Unit
-) {
-    Column (
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-    ){
-        if (itemSiswa.isEmpty()) {
-            Text(
-                text = stringResource(R.string.deskripsi_no_item),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleLarge
-            )
-        } else {
-            ListSiswa(
-                itemSiswa = itemSiswa,
-                modifier = Modifier.padding(horizontal = dimensionResource(id = R.dimen.padding_small)),
-                onItemClick = { onSiswaClick(it.id) }
-            )
-        }
-    }
+object DestinasiHome : DestinasiNavigasi {
+    override val route = "home"
+            override val titleRes = "Kontak"
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KontakLayout(
-    itemSiswa: List<Siswa>,
+fun HomeScreen(
+    navigateToItemEntry: () -> Unit,
     modifier: Modifier = Modifier,
-    onItemClick: (Siswa) ->Unit
+    onDetailClick: (Int) -> Unit = {},
+    viewModel: HomeViewModel = viewModel(factory = PenyediaViewModel.Factory)
 ) {
-    LazyColumn(modifier = Modifier){
-        items(items = itemSiswa, key = {it.id}){
-                person ->
-            DataSiswa(
-                siswa = person,
-                modifier = Modifier
-                    .padding(dimensionResource(id = R.dimen.padding_small))
-                    .clickable { onItemClick(person) })
-        }
-    }
-}
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
-@Composable
-fun KontakCard(
-    siswa: Siswa,
-    modifier: Modifier = Modifier
-) {
-    Card (
-        modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ){
-        Row (
-            modifier = Modifier.fillMaxWidth()
-        ){
-            Text(
-                text = siswa.nama,
-                style = MaterialTheme.typography.titleLarge,
-            )
-            Spacer(Modifier.weight(1f))
-            Icon(
-                imageVector = Icons.Default.Phone,
-                contentDescription = null,
-            )
-            Text(
-                text = siswa.telpon,
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-    }
-}
-
-@Composable
-fun OnError(retryAction: () -> Unit, modifier: Modifier = Modifier) {
-    Column (
-        modifier = modifier,
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ){
-        Image(painter = painterResource(id = R.drawable.ic_connection_error),
-            contentDescription = "")
-        Text(text = stringResource(id = R.string.loading_failed), modifier = Modifier.padding(16.dp))
-        Button(onClick = retryAction) {
-            Text(stringResource(R.string.retry))
-        }
+    Scaffold (
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            TopAppBarKontak(title = DestinasiHome.titleRes, canNavigateBack = false, scrollBehavior = scrollBehavior,)
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = navigateToItemEntry,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.padding(18.dp)
+            ) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Kontak"
+                )
+            }
+        },
+    ){innerPadding ->
+        HomeStatus(
+            kontakUIState = viewModel.kontakUIState,
+            retryAction = {viewModel.getKontak()},
+            modifier = Modifier.padding(innerPadding),
+            onDetailClick = onDetailClick,
+            onDeleteClick = {
+                viewModel.deleteKontak(it.id)
+                viewModel.getKontak()
+            }
+        )
     }
 }
